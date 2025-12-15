@@ -115,20 +115,22 @@ resource "aws_security_group" "my_sg" {
 # ANSIBLE SERVER
 # -------------------------------------
 resource "aws_instance" "ansible_server" {
-  ami           = "ami-0d176f79571d18a8f" # Amazon Linux 2
+  ami           = "ami-02b8269d5e85954ef" # Ubuntu latest
   instance_type = "t3.small"
   subnet_id     = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
   key_name      = aws_key_pair.my_keypair.key_name
 
-  user_data = <<-EOF
+ user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y python3
-              curl -O https://bootstrap.pypa.io/get-pip.py
-              python3 get-pip.py
+              set -e
+              apt-get update -y
+              apt-get install -y python3 python3-pip
+
+              pip3 install --upgrade pip
               pip3 install ansible
               EOF
+
 
   tags = { Name = "ansible-server" }
 }
@@ -137,7 +139,7 @@ resource "aws_instance" "ansible_server" {
 # DOCKER SERVER
 # -------------------------------------
 resource "aws_instance" "docker_server" {
-  ami           = "ami-0d176f79571d18a8f"
+  ami           = "ami-02b8269d5e85954ef"
   instance_type = "t3.small"
   subnet_id     = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
