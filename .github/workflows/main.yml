@@ -55,4 +55,24 @@ jobs:
         mkdir -p ~/.ssh
         terraform output -raw ssh_private_key > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ss
+        ssh-keyscan -H "$DOCKER_IP" >> ~/.ssh/known_hosts
+
+    # ----------------------------
+    # Generate Ansible Inventory
+    # ----------------------------
+    - name: Generate inventory
+      run: |
+        cat <<EOF > app/inventory.ini
+        [docker]
+        docker ansible_host=$DOCKER_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+        EOF
+
+    # ----------------------------
+    # Run Ansible Playbook
+    # ----------------------------
+    - name: Run Ansible Playbook
+      working-directory: app
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+        ansible-playbook -i inventory.ini docker-creation.yml
