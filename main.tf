@@ -1,6 +1,3 @@
-provider "aws" {
-  region = "ap-south-1"
-}
 
 # -------------------------------------
 # GENERATE LOCAL PRIVATE KEY
