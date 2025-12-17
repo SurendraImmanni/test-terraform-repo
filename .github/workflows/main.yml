@@ -28,10 +28,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -out=ftfplan
+        run: terraform plan -out=gtfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve ftfplan
+        run: terraform apply -auto-approve gtfplan
 
       - name: Get Ansible & Docker IPs
         run: |
@@ -65,13 +65,20 @@ jobs:
 
           cd /home/ubuntu/app
 
-          # Ensure Docker server host key is trusted
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${DOCKER_IP} >> ~/.ssh/known_hosts
+          # ---------- COPY SSH KEY TO ANSIBLE SERVER ----------
+          mkdir -p /home/ubuntu/.ssh
+          cat > /home/ubuntu/.ssh/id_rsa <<'KEY'
+          $(cat ~/.ssh/id_rsa)
+          KEY
+          chmod 600 /home/ubuntu/.ssh/id_rsa
 
+          # Trust Docker server host key
+          ssh-keyscan -H ${DOCKER_IP} >> /home/ubuntu/.ssh/known_hosts
+
+          # ---------- CREATE INVENTORY ----------
           cat > inventory.ini <<INV
           [docker]
-          docker1 ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+          docker1 ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/.ssh/id_rsa
           INV
 
           echo "===== INVENTORY ====="
