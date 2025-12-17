@@ -15,71 +15,63 @@ jobs:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
-    # ----------------------------
-    # Checkout
-    # ----------------------------
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # ----------------------------
-    # Terraform
-    # ----------------------------
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-    - name: Terraform Validate
-      run: terraform validate
+      - name: Terraform Validate
+        run: terraform validate
 
-    - name: Terraform Plan
-      run: terraform plan -out=tfplan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
 
-    - name: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
 
-    # ----------------------------
-    # Fetch Server IPs
-    # ----------------------------
-    - name: Get Server IPs
-      run: |
-        ANSIBLE_IP=$(terraform output -raw ansible_server_public_ip)
-        DOCKER_IP=$(terraform output -raw docker_server_public_ip)
+      - name: Get Server IPs
+        run: |
+          set -e
+          ANSIBLE_IP=$(terraform output -raw ansible_server_public_ip)
+          DOCKER_IP=$(terraform output -raw docker_server_public_ip)
 
-        echo "ANSIBLE_IP=$ANSIBLE_IP" >> $GITHUB_ENV
-        echo "DOCKER_IP=$DOCKER_IP" >> $GITHUB_ENV
+          echo "ANSIBLE_IP=$ANSIBLE_IP" >> "$GITHUB_ENV"
+          echo "DOCKER_IP=$DOCKER_IP" >> "$GITHUB_ENV"
 
-    # ----------------------------
-    # SSH Key from Terraform
-    # ----------------------------
-    - name: Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        terraform output -raw ssh_private_key > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "$ANSIBLE_IP" >> ~/.ssh/known_hosts
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          terraform output -raw ssh_private_key > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$ANSIBLE_IP" >> ~/.ssh/known_hosts
 
-    # ----------------------------
-    # Copy App + Playbook to Ansible Server
-    # ----------------------------
-    - name: Copy files to Ansible Server
-      run: |
-        rsync -avz \
-          -e "ssh -i ~/.ssh/id_rsa" \
-          app \
-          ubuntu@$ANSIBLE_IP:/home/ubuntu/
+      - name: Copy files to Ansible Server
+        run: |
+          rsync -avz \
+            -e "ssh -i ~/.ssh/id_rsa" \
+            app \
+            ubuntu@"$ANSIBLE_IP":/home/ubuntu/
 
-    # ----------------------------
-    # Run Ansible FROM Ansible Server
-    # ----------------------------
-    - name: Execute Ansible on Ansible Server
-      run: |
-        ssh -i ~/.ssh/id_rsa ubuntu@$ANSIBLE_IP <<EOF
-          cat <<INV > inventory.ini
-          [docker]
-          docker ansible_host=$DOCKER_IP ansible_user=ubuntu
-          INV
+      - name: Execute Ansible on Ansible Server
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@"$ANSIBLE_IP" << 'EOF'
+            set -euo pipefail
+            set -x
 
-          ansible-playbook -i inventory.ini app/docker-creation.yml
-        EOF
+            cd /home/ubuntu
+
+            cat > inventory.ini <<INV
+            [docker]
+            docker ansible_host=$DOCKER_IP ansible_user=ubuntu
+            INV
+
+            echo "===== INVENTORY ====="
+            cat inventory.ini
+
+            echo "===== RUNNING ANSIBLE PLAYBOOK ====="
+            ansible-playbook -i inventory.ini app/docker-creation.yml
+          EOF
