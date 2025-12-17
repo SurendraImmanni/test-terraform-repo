@@ -122,10 +122,9 @@ resource "aws_instance" "ansible_server" {
               #!/bin/bash
               set -e
               apt-get update -y
-              apt-get install -y python3 python3-pip
-
-              pip3 install --upgrade pip
-              pip3 install ansible
+              apt install -y software-properties-common
+              add-apt-repository --yes --update ppa:ansible/ansible
+              apt install -y ansible
               EOF
 
 
