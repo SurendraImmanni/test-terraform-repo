@@ -67,7 +67,7 @@ jobs:
       run: |
         rsync -avz \
           -e "ssh -i ~/.ssh/id_rsa" \
-          app ansible-playbook.yml \
+          app \
           ubuntu@$ANSIBLE_IP:/home/ubuntu/
 
     # ----------------------------
