@@ -4,8 +4,8 @@
   become: yes
 
   vars:
-    src_app_path: "/home/ec2-user/app"        # Path on Ansible server
-    dest_app_path: "/home/ec2-user"           # Target path on Docker server
+    src_app_path: "/home/ubuntu/app"        # Path on Ansible server
+    dest_app_path: "/home/ubuntu"           # Target path on Docker server
     image_name: "digitalform:v1"
     container_name: "digitalform-container"
 
@@ -38,8 +38,8 @@
       copy:
         src: "{{ item }}"
         dest: "{{ dest_app_path }}/"
-        owner: ec2-user
-        group: ec2-user
+        owner: ubuntu
+        group: ubuntu
         mode: '0644'
       loop:
         - "{{ src_app_path }}/Dockerfile"
