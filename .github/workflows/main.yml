@@ -58,7 +58,7 @@ jobs:
 
       - name: Execute Ansible on Ansible Server
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@"$ANSIBLE_IP" << 'EOF'
+          ssh -i ~/.ssh/id_rsa ubuntu@"$ANSIBLE_IP" <<EOF
             set -euo pipefail
             set -x
 
@@ -66,7 +66,7 @@ jobs:
 
             cat > inventory.ini <<INV
             [docker]
-            docker ansible_host=$DOCKER_IP ansible_user=ubuntu
+            docker ansible_host=${DOCKER_IP} ansible_user=ubuntu
             INV
 
             echo "===== INVENTORY ====="
