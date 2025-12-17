@@ -15,8 +15,9 @@
     # ----------------------------
     - name: Install docker
       yum:
-        name: docker
+        name: docker.io
         state: present
+        update_cache: yes
 
     - name: Start and enable Docker
       service:
