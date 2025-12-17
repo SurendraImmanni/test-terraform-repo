@@ -28,10 +28,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -out=etfplan
+        run: terraform plan -out=ftfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve etfplan
+        run: terraform apply -auto-approve ftfplan
 
       - name: Get Ansible & Docker IPs
         run: |
@@ -65,15 +65,13 @@ jobs:
 
           cd /home/ubuntu/app
 
-          # Ensure ansible-playbook exists
-          if ! command -v ansible-playbook >/dev/null 2>&1; then
-            sudo apt update
-            sudo apt install -y ansible
-          fi
+          # Ensure Docker server host key is trusted
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${DOCKER_IP} >> ~/.ssh/known_hosts
 
           cat > inventory.ini <<INV
           [docker]
-          docker ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+          docker1 ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
           INV
 
           echo "===== INVENTORY ====="
