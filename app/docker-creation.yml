@@ -14,7 +14,7 @@
     # Install & Start Docker
     # ----------------------------
     - name: Install docker
-      yum:
+      apt:
         name: docker.io
         state: present
         update_cache: yes
