@@ -18,9 +18,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ----------------------------
-      # Terraform
-      # ----------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -31,14 +28,11 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -out=atfplan
+        run: terraform plan -out=btfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve atfplan
+        run: terraform apply -auto-approve btfplan
 
-      # ----------------------------
-      # Get Server IPs
-      # ----------------------------
       - name: Get Ansible & Docker IPs
         run: |
           set -e
@@ -48,49 +42,37 @@ jobs:
           echo "ANSIBLE_IP=$ANSIBLE_IP" >> "$GITHUB_ENV"
           echo "DOCKER_IP=$DOCKER_IP" >> "$GITHUB_ENV"
 
-      # ----------------------------
-      # Configure SSH
-      # ----------------------------
       - name: Configure SSH
         run: |
-          set -e
           mkdir -p ~/.ssh
           terraform output -raw ssh_private_key > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
           ssh-keyscan -H "$ANSIBLE_IP" >> ~/.ssh/known_hosts
           ssh-keyscan -H "$DOCKER_IP" >> ~/.ssh/known_hosts
 
-      # ----------------------------
-      # Copy app folder to Ansible server
-      # ----------------------------
       - name: Copy app folder to Ansible server
         run: |
-          set -e
           rsync -avz \
             -e "ssh -i ~/.ssh/id_rsa" \
             ./app/ \
             ubuntu@"$ANSIBLE_IP":~/app/
 
-      # ----------------------------
-      # Run Ansible playbook on Ansible server
-      # ----------------------------
       - name: Run Ansible playbook on Ansible server
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@"$ANSIBLE_IP" <<EOF
-            set -euo pipefail
-            set -x
+          ssh -i ~/.ssh/id_rsa ubuntu@"$ANSIBLE_IP" bash -s <<EOF
+          set -euo pipefail
+          set -x
 
-            cd ~/app
+          cd /home/ubuntu/app
 
-            cat > inventory.ini <<INV
-            [docker]
-            docker ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
-            INV
+          cat > inventory.ini <<INV
+          [docker]
+          docker ansible_host=${DOCKER_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+          INV
 
-            echo "===== INVENTORY ====="
-            cat inventory.ini
+          echo "===== INVENTORY ====="
+          cat inventory.ini
 
-            echo "===== RUNNING ANSIBLE PLAYBOOK ====="
-            ansible-playbook -i inventory.ini docker-creation.yml
+          echo "===== RUNNING ANSIBLE PLAYBOOK ====="
+          ansible-playbook -i inventory.ini docker-creation.yml
           EOF
