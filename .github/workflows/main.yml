@@ -70,7 +70,7 @@ jobs:
           rsync -avz \
             -e "ssh -i ~/.ssh/id_rsa" \
             ./app/ \
-            ansible@"$ANSIBLE_IP":~/app/
+            ubuntu@"$ANSIBLE_IP":~/app/
 
       # ----------------------------
       # Run Ansible playbook on Ansible server
