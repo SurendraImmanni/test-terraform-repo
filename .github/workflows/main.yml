@@ -9,13 +9,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # 🔐 AWS credentials available to ALL steps
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
+    # ----------------------------
+    # Checkout
+    # ----------------------------
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -38,13 +40,14 @@ jobs:
       run: terraform apply -auto-approve tfplan
 
     # ----------------------------
-    # Get Docker Server IP
+    # Fetch Server IPs
     # ----------------------------
-    - name: Get Docker Server IP
+    - name: Get Server IPs
       run: |
-        set -e
+        ANSIBLE_IP=$(terraform output -raw ansible_server_public_ip)
         DOCKER_IP=$(terraform output -raw docker_server_public_ip)
-        echo "Docker IP is: $DOCKER_IP"
+
+        echo "ANSIBLE_IP=$ANSIBLE_IP" >> $GITHUB_ENV
         echo "DOCKER_IP=$DOCKER_IP" >> $GITHUB_ENV
 
     # ----------------------------
@@ -55,24 +58,28 @@ jobs:
         mkdir -p ~/.ssh
         terraform output -raw ssh_private_key > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "$DOCKER_IP" >> ~/.ssh/known_hosts
+        ssh-keyscan -H "$ANSIBLE_IP" >> ~/.ssh/known_hosts
 
     # ----------------------------
-    # Generate Ansible Inventory
+    # Copy App + Playbook to Ansible Server
     # ----------------------------
-    - name: Generate inventory
+    - name: Copy files to Ansible Server
       run: |
-        cat <<EOF > app/inventory.ini
-        [docker]
-        docker ansible_host=$DOCKER_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+        rsync -avz \
+          -e "ssh -i ~/.ssh/id_rsa" \
+          app ansible-playbook.yml \
+          ubuntu@$ANSIBLE_IP:/home/ubuntu/
+
+    # ----------------------------
+    # Run Ansible FROM Ansible Server
+    # ----------------------------
+    - name: Execute Ansible on Ansible Server
+      run: |
+        ssh -i ~/.ssh/id_rsa ubuntu@$ANSIBLE_IP <<EOF
+          cat <<INV > inventory.ini
+          [docker]
+          docker ansible_host=$DOCKER_IP ansible_user=ubuntu
+          INV
+
+          ansible-playbook -i inventory.ini app/docker-creation.yml
         EOF
-
-    # ----------------------------
-    # Run Ansible Playbook
-    # ----------------------------
-    - name: Run Ansible Playbook
-      working-directory: app
-      run: |
-        sudo apt update
-        sudo apt install -y ansible
-        ansible-playbook -i inventory.ini docker-creation.yml

@@ -15,6 +15,10 @@ output "ssh_private_key" {
   sensitive = true
 }
 
+output "ansible_server_public_ip" {
+  value = aws_instance.ansible.public_ip
+}
+
 output "docker_server_public_ip" {
   value = aws_instance.docker_server.public_ip
 }
