@@ -1,6 +1,6 @@
 ---
 - name: Install Docker and deploy web app
-  hosts: docker_server
+  hosts: docker
   become: yes
 
   vars:

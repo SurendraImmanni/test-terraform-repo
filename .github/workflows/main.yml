@@ -28,10 +28,10 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -out=dtfplan
+        run: terraform plan -out=etfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve dtfplan
+        run: terraform apply -auto-approve etfplan
 
       - name: Get Ansible & Docker IPs
         run: |
